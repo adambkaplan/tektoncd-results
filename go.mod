@@ -15,6 +15,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/prometheus/client_golang v1.12.1
 	github.com/tektoncd/cli v0.23.1
+	github.com/spf13/viper v1.8.1
 	github.com/tektoncd/pipeline v0.35.1
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/zap v1.21.0
