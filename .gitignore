@@ -5,4 +5,10 @@
 # Testing
 temp
 bin
-results.db
+*.db
+
+# Certs
+**/*.crt
+**/*.key
+**/*.ca
+**/*.pem
