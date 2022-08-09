@@ -225,6 +225,10 @@ message ListLogsRequest {
   int32 page_size = 2;
 
   string page_token = 3;
+
+  string filter = 4;
+
+  string order_by = 5;
 }
 
 message ListLogsResponse {
