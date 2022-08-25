@@ -26,6 +26,7 @@ import (
 	"github.com/tektoncd/results/pkg/api/server/db"
 	"github.com/tektoncd/results/pkg/api/server/v1alpha2/log"
 	"github.com/tektoncd/results/pkg/apis/v1alpha2"
+	"github.com/tektoncd/results/pkg/conf"
 	pb "github.com/tektoncd/results/proto/v1alpha2/results_go_proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -60,7 +61,7 @@ func FormatName(parent, name string) string {
 // ToStorage converts an API Record into its corresponding database storage
 // equivalent.
 // parent,result,name should be the name parts (e.g. not containing "/results/" or "/records/").
-func ToStorage(parent, resultName, resultID, name string, r *pb.Record) (*db.Record, error) {
+func ToStorage(parent, resultName, resultID, name string, r *pb.Record, conf *conf.ConfigFile) (*db.Record, error) {
 	if err := validateData(r.GetData()); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -98,7 +99,7 @@ func ToStorage(parent, resultName, resultID, name string, r *pb.Record) (*db.Rec
 	}
 
 	if r.GetData().GetType() == v1alpha2.TaskRunLogRecordType {
-		data, err := toTaskRunLogStorage(parent, resultName, name, r)
+		data, err := toTaskRunLogStorage(parent, resultName, name, r, conf)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +109,7 @@ func ToStorage(parent, resultName, resultID, name string, r *pb.Record) (*db.Rec
 	return dbr, nil
 }
 
-func toTaskRunLogStorage(parent, resultName, name string, r *pb.Record) ([]byte, error) {
+func toTaskRunLogStorage(parent, resultName, name string, r *pb.Record, conf *conf.ConfigFile) ([]byte, error) {
 	trl := &v1alpha2.TaskRunLog{}
 	if len(r.GetData().Value) > 0 {
 		err := json.Unmarshal(r.GetData().Value, trl)
@@ -117,9 +118,12 @@ func toTaskRunLogStorage(parent, resultName, name string, r *pb.Record) ([]byte,
 		}
 	}
 	trl.Default()
-	// TODO: Make this configurable in the apiserver.
 	if trl.Spec.Type == "" {
-		trl.Spec.Type = v1alpha2.FileLogType
+		trl.Spec.Type = v1alpha2.TaskRunLogType(conf.LOG_TYPE)
+		if len(trl.Spec.Type) == 0 {
+			trl.Spec.Type = v1alpha2.FileLogType
+		}
+		fmt.Printf("set up log type %s\n", trl.Spec.Type)
 	}
 	return json.Marshal(trl)
 }
@@ -153,7 +157,7 @@ func ToAPI(r *db.Record) (*pb.Record, error) {
 	return out, nil
 }
 
-func ToLogStreamer(r *db.Record, bufSize int, dataDir string) (log.LogStreamer, *v1alpha2.TaskRunLog, error) {
+func ToLogStreamer(r *db.Record, bufSize int, dataDir string, conf *conf.ConfigFile) (log.LogStreamer, *v1alpha2.TaskRunLog, error) {
 	if r.Type != v1alpha2.TaskRunLogRecordType {
 		return nil, nil, fmt.Errorf("record type %s cannot stream logs", r.Type)
 	}
@@ -162,7 +166,7 @@ func ToLogStreamer(r *db.Record, bufSize int, dataDir string) (log.LogStreamer, 
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not decode TaskRunLog record: %v", err)
 	}
-	stream, err := log.NewLogStreamer(trl, bufSize, dataDir)
+	stream, err := log.NewLogStreamer(trl, bufSize, dataDir, conf)
 	return stream, trl, err
 }
 

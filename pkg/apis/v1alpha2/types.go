@@ -29,6 +29,7 @@ type TaskRunLogType string
 
 const (
 	FileLogType TaskRunLogType = "File"
+	S3LogType   TaskRunLogType  = "S3"
 )
 
 type TaskRunLogStatus struct {

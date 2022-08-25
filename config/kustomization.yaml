@@ -21,6 +21,7 @@ resources:
 - default-clusterroles.yaml
 - watcher.yaml
 - config-info.yaml
+- config.yaml
 labels:
   - pairs:
       app.kubernetes.io/part-of: tekton-results

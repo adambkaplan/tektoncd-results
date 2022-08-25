@@ -37,6 +37,7 @@ import (
 	"github.com/spf13/viper"
 	v1alpha2 "github.com/tektoncd/results/pkg/api/server/v1alpha2"
 	"github.com/tektoncd/results/pkg/api/server/v1alpha2/auth"
+	"github.com/tektoncd/results/pkg/conf"
 	v1alpha2pb "github.com/tektoncd/results/proto/v1alpha2/results_go_proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -49,17 +50,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type ConfigFile struct {
-	DB_USER     string `mapstructure:"DB_USER"`
-	DB_PASSWORD string `mapstructure:"DB_PASSWORD"`
-	DB_PROTOCOL string `mapstructure:"DB_PROTOCOL"`
-	DB_ADDR     string `mapstructure:"DB_ADDR"`
-	DB_NAME     string `mapstructure:"DB_NAME"`
-	DB_SSLMODE  string `mapstructure:"DB_SSLMODE"`
-}
-
 func main() {
 
+	// Config file path in the linux container
+	viper.AddConfigPath("/etc/env")
+	// Config file path for local development purpose.
 	viper.AddConfigPath("./env")
 	viper.SetConfigName("config")
 	viper.SetConfigType("env")
@@ -68,10 +63,10 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return
+		log.Fatalf("Failed to read env configuration: %v", err)
 	}
 
-	configFile := ConfigFile{}
+	configFile := conf.ConfigFile{}
 	err = viper.Unmarshal(&configFile)
 
 	if err != nil {
@@ -119,7 +114,9 @@ func main() {
 	// Register API server(s)
 	v1a2, err := v1alpha2.New(db,
 		v1alpha2.WithAuth(auth.NewRBAC(k8s)),
-		v1alpha2.WithLogDataDir(logsData))
+		v1alpha2.WithLogDataDir(logsData),
+		v1alpha2.WithConf(&configFile),
+	)
 	if err != nil {
 		log.Fatalf("failed to create server: %v", err)
 	}

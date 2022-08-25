@@ -35,7 +35,7 @@ func (s *Server) GetLog(req *pb.GetLogRequest, srv pb.Results_GetLogServer) erro
 		return err
 	}
 	// Step 4: Transform record into LogStreamer
-	streamer, taskRunLog, err := record.ToLogStreamer(dbRecord, s.logChunkSize, s.logDataDir)
+	streamer, taskRunLog, err := record.ToLogStreamer(dbRecord, s.logChunkSize, s.logDataDir, s.Conf)
 	if err != nil {
 		fmt.Printf("GetLog: failed to convert %s to log streamer: %v\n", req.GetName(), err)
 		return err
@@ -49,7 +49,7 @@ func (s *Server) GetLog(req *pb.GetLogRequest, srv pb.Results_GetLogServer) erro
 }
 
 func hasLogs(trl *v1alpha2.TaskRunLog) bool {
-	if trl.Spec.Type != v1alpha2.FileLogType {
+	if trl.Spec.Type != v1alpha2.FileLogType && trl.Spec.Type != v1alpha2.S3LogType {
 		return false
 	}
 	if trl.Status.File == nil {
@@ -64,9 +64,9 @@ func (s *Server) PutLog(stream pb.Results_PutLogServer) error {
 	var dbRecord *db.Record
 	var taskRunLog *v1alpha2.TaskRunLog
 	var logStreamer resultslog.LogStreamer
-	fmt.Println("PutLog: begin file stream")
+	fmt.Println("PutLog: begin log stream")
 	defer func() {
-		fmt.Println("PutLog: finished file stream")
+		fmt.Println("PutLog: finished log stream")
 	}()
 	for {
 		logChunk, err := stream.Recv()
@@ -111,7 +111,7 @@ func (s *Server) PutLog(stream pb.Results_PutLogServer) error {
 		}
 		// Step 4: Transform record into LogStreamer
 		if logStreamer == nil {
-			logStreamer, taskRunLog, err = record.ToLogStreamer(dbRecord, s.logChunkSize, s.logDataDir)
+			logStreamer, taskRunLog, err = record.ToLogStreamer(dbRecord, s.logChunkSize, s.logDataDir, s.Conf)
 			if err != nil {
 				fmt.Printf("PutLog: failed to create LogStreamer for %s: %v\n", recordName, err)
 				return s.handleReturn(stream, dbRecord, taskRunLog, bytesWritten, err)
@@ -122,7 +122,6 @@ func (s *Server) PutLog(stream pb.Results_PutLogServer) error {
 		written, err := logStreamer.ReadFrom(buffer)
 		bytesWritten += written
 		if err != nil {
-			fmt.Printf("PutLog: failed to read from buffer for %s: %v\n", recordName, err)
 			return s.handleReturn(stream, dbRecord, taskRunLog, bytesWritten, err)
 		}
 	}

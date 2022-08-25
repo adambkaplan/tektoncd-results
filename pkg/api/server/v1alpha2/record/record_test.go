@@ -185,7 +185,7 @@ func TestToStorage(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ToStorage("foo", "bar", "1", "baz", tc.in)
+			got, err := ToStorage("foo", "bar", "1", "baz", tc.in, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -223,7 +223,7 @@ func TestToStorage(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ToStorage("foo", "bar", "1", "baz", tc.in)
+			got, err := ToStorage("foo", "bar", "1", "baz", tc.in, nil)
 			if status.Code(err) != tc.want {
 				t.Fatalf("expected %v, got (%v, %v)", tc.want, got, err)
 			}
@@ -364,7 +364,7 @@ func TestToLogStreamer(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			streamer, _, err := ToLogStreamer(tc.in, 1024, "")
+			streamer, _, err := ToLogStreamer(tc.in, 1024, "", nil)
 			if err != nil {
 				if !tc.expectErr {
 					t.Errorf("unexpected error: %v", err)

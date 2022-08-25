@@ -55,12 +55,26 @@ spec:
               value: tekton-results
             - name: LOGS_DATA
               value: /app/tekton-results/logs
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: tekton-results-s3-credentials
+                  key: S3_ACCESS_KEY_ID
+                  optional: true
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tekton-results-s3-credentials
+                  key: S3_SECRET_ACCESS_KEY
+                  optional: true
           volumeMounts:
             - name: tls
               mountPath: "/etc/tls"
               readOnly: true
             - name: tekton-logs
               mountPath: "/app/tekton-results/logs"
+            - name: tekton-results-config
+              mountPath: "/etc/env/"
       volumes:
         - name: tls
           secret:
@@ -68,6 +82,9 @@ spec:
         - name: tekton-logs
           persistentVolumeClaim:
             claimName: tekton-logs
+        - name: tekton-results-config
+          configMap:
+            name: tekton-results-config
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
