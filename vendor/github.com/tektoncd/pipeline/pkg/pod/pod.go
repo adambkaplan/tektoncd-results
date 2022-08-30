@@ -19,7 +19,6 @@ package pod
 import (
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -28,7 +27,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tektoncd/pipeline/pkg/internal/computeresources/tasklevel"
 	"github.com/tektoncd/pipeline/pkg/names"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,8 +115,7 @@ func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec 
 	)
 	volumeMounts := []corev1.VolumeMount{binROMount}
 	implicitEnvVars := []corev1.EnvVar{}
-	featureFlags := config.FromContextOrDefaults(ctx).FeatureFlags
-	alphaAPIEnabled := featureFlags.EnableAPIFields == config.AlphaAPIFields
+	alphaAPIEnabled := config.FromContextOrDefaults(ctx).FeatureFlags.EnableAPIFields == config.AlphaAPIFields
 
 	// Add our implicit volumes first, so they can be overridden by the user if they prefer.
 	volumes = append(volumes, implicitVolumes...)
@@ -143,9 +140,6 @@ func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec 
 	steps, err = v1beta1.MergeStepsWithOverrides(steps, taskRun.Spec.StepOverrides)
 	if err != nil {
 		return nil, err
-	}
-	if alphaAPIEnabled && taskRun.Spec.ComputeResources != nil {
-		tasklevel.ApplyTaskLevelComputeResources(steps, taskRun.Spec.ComputeResources)
 	}
 	sidecars, err := v1beta1.MergeSidecarsWithOverrides(taskSpec.Sidecars, taskRun.Spec.SidecarOverrides)
 	if err != nil {
@@ -189,20 +183,15 @@ func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec 
 		return nil, err
 	}
 
-	readyImmediately := isPodReadyImmediately(*featureFlags, taskSpec.Sidecars)
-
 	if alphaAPIEnabled {
-		stepContainers, err = orderContainers(credEntrypointArgs, stepContainers, &taskSpec, taskRun.Spec.Debug, !readyImmediately)
+		stepContainers, err = orderContainers(credEntrypointArgs, stepContainers, &taskSpec, taskRun.Spec.Debug)
 	} else {
-		stepContainers, err = orderContainers(credEntrypointArgs, stepContainers, &taskSpec, nil, !readyImmediately)
+		stepContainers, err = orderContainers(credEntrypointArgs, stepContainers, &taskSpec, nil)
 	}
 	if err != nil {
 		return nil, err
 	}
-	volumes = append(volumes, binVolume)
-	if !readyImmediately {
-		volumes = append(volumes, downwardVolume)
-	}
+	volumes = append(volumes, binVolume, downwardVolume)
 
 	// Add implicit env vars.
 	// They're prepended to the list, so that if the user specified any
@@ -294,9 +283,13 @@ func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec 
 	}
 
 	podAnnotations := kmeta.CopyMap(taskRun.Annotations)
-	podAnnotations[ReleaseAnnotation] = changeset.Get()
+	version, err := changeset.Get()
+	if err != nil {
+		return nil, err
+	}
+	podAnnotations[ReleaseAnnotation] = version
 
-	if readyImmediately {
+	if shouldAddReadyAnnotationOnPodCreate(ctx, taskSpec.Sidecars) {
 		podAnnotations[readyAnnotation] = readyAnnotationValue
 	}
 
@@ -347,7 +340,6 @@ func (b *Builder) Build(ctx context.Context, taskRun *v1beta1.TaskRun, taskSpec 
 			PriorityClassName:            priorityClassName,
 			ImagePullSecrets:             podTemplate.ImagePullSecrets,
 			HostAliases:                  podTemplate.HostAliases,
-			TopologySpreadConstraints:    podTemplate.TopologySpreadConstraints,
 			ActiveDeadlineSeconds:        &activeDeadlineSeconds, // Set ActiveDeadlineSeconds to mark the pod as "terminating" (like a Job)
 		},
 	}
@@ -379,19 +371,19 @@ func makeLabels(s *v1beta1.TaskRun) map[string]string {
 	return labels
 }
 
-// isPodReadyImmediately returns a bool indicating whether the
-// controller should consider the Pod "Ready" as soon as it's deployed.
-// This will add the `Ready` annotation when creating the Pod,
-// and prevent the first step from waiting for the annotation to appear before starting.
-func isPodReadyImmediately(featureFlags config.FeatureFlags, sidecars []v1beta1.Sidecar) bool {
-	// If the TaskRun has sidecars, we must wait for them
-	if len(sidecars) > 0 || featureFlags.RunningInEnvWithInjectedSidecars {
-		if featureFlags.AwaitSidecarReadiness {
-			return false
-		}
-		log.Printf("warning: not waiting for sidecars before starting first Step of Task pod")
+// shouldAddReadyAnnotationOnPodCreate returns a bool indicating whether the
+// controller should add the `Ready` annotation when creating the Pod. We cannot
+// add the annotation if Tekton is running in a cluster with injected sidecars
+// or if the Task specifies any sidecars.
+func shouldAddReadyAnnotationOnPodCreate(ctx context.Context, sidecars []v1beta1.Sidecar) bool {
+	// If the TaskRun has sidecars, we cannot set the READY annotation early
+	if len(sidecars) > 0 {
+		return false
 	}
-	return true
+	// If the TaskRun has no sidecars, check if we are running in a cluster where sidecars can be injected by other
+	// controllers.
+	cfg := config.FromContextOrDefaults(ctx)
+	return !cfg.FeatureFlags.RunningInEnvWithInjectedSidecars
 }
 
 func runMount(i int, ro bool) corev1.VolumeMount {

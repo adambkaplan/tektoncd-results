@@ -39,8 +39,6 @@ const (
 	DefaultManagedByLabelValue = "tekton-pipelines"
 	// DefaultCloudEventSinkValue is the default value for cloud event sinks.
 	DefaultCloudEventSinkValue = ""
-	// DefaultMaxMatrixCombinationsCount is used when no max matrix combinations count is specified.
-	DefaultMaxMatrixCombinationsCount = 256
 
 	defaultTimeoutMinutesKey             = "default-timeout-minutes"
 	defaultServiceAccountKey             = "default-service-account"
@@ -90,18 +88,16 @@ func (cfg *Defaults) Equals(other *Defaults) bool {
 		other.DefaultPodTemplate.Equals(cfg.DefaultPodTemplate) &&
 		other.DefaultAAPodTemplate.Equals(cfg.DefaultAAPodTemplate) &&
 		other.DefaultCloudEventsSink == cfg.DefaultCloudEventsSink &&
-		other.DefaultTaskRunWorkspaceBinding == cfg.DefaultTaskRunWorkspaceBinding &&
-		other.DefaultMaxMatrixCombinationsCount == cfg.DefaultMaxMatrixCombinationsCount
+		other.DefaultTaskRunWorkspaceBinding == cfg.DefaultTaskRunWorkspaceBinding
 }
 
 // NewDefaultsFromMap returns a Config given a map corresponding to a ConfigMap
 func NewDefaultsFromMap(cfgMap map[string]string) (*Defaults, error) {
 	tc := Defaults{
-		DefaultTimeoutMinutes:             DefaultTimeoutMinutes,
-		DefaultServiceAccount:             DefaultServiceAccountValue,
-		DefaultManagedByLabelValue:        DefaultManagedByLabelValue,
-		DefaultCloudEventsSink:            DefaultCloudEventSinkValue,
-		DefaultMaxMatrixCombinationsCount: DefaultMaxMatrixCombinationsCount,
+		DefaultTimeoutMinutes:      DefaultTimeoutMinutes,
+		DefaultServiceAccount:      DefaultServiceAccountValue,
+		DefaultManagedByLabelValue: DefaultManagedByLabelValue,
+		DefaultCloudEventsSink:     DefaultCloudEventSinkValue,
 	}
 
 	if defaultTimeoutMin, ok := cfgMap[defaultTimeoutMinutesKey]; ok {

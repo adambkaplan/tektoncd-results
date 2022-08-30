@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/tektoncd/pipeline/pkg/apis/config"
-	pod "github.com/tektoncd/pipeline/pkg/apis/pipeline/pod"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 )
@@ -64,7 +63,7 @@ func (trs *TaskRunSpec) SetDefaults(ctx context.Context) {
 	}
 
 	defaultPodTemplate := cfg.Defaults.DefaultPodTemplate
-	trs.PodTemplate = pod.MergePodTemplateWithDefault(trs.PodTemplate, defaultPodTemplate)
+	trs.PodTemplate = MergePodTemplateWithDefault(trs.PodTemplate, defaultPodTemplate)
 
 	// If this taskrun has an embedded task, apply the usual task defaults
 	if trs.TaskSpec != nil {

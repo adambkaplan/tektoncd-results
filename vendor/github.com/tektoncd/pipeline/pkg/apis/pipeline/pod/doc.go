@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package pod contains non-versioned pod configuration
 // +k8s:openapi-gen=true
-// +gencrdrefdocs:unversionedTypes
-// +groupName=tekton.dev
+
+// Package pod contains non-versioned pod configuration
 package pod
