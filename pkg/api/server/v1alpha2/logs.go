@@ -72,7 +72,7 @@ func (s *Server) PutLog(stream pb.Results_PutLogServer) error {
 		logChunk, err := stream.Recv()
 		// If we reach the end of the stream, we receive an io.EOF error
 		if err != nil {
-			return s.handleReturn(stream, dbRecord, taskRunLog, bytesWritten, err)
+			return s.handleReturn(stream, nil, taskRunLog, bytesWritten, err)
 		}
 		// Ensure that we are receiving logs for the same record
 		if recordName == "" {
