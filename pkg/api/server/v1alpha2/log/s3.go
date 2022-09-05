@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/tektoncd/results/pkg/apis/v1alpha2"
 	"github.com/tektoncd/results/pkg/conf"
 )
@@ -96,7 +95,6 @@ func (ls *S3LogStreamer) ReadFrom(r io.Reader) (n int64, err error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to put object ot S3 %v", err.Error())
 	}
-	fmt.Println("OK. Data was sent to S3 successfully!")
 
 	return int64(len(newBts)), nil
 }
@@ -124,21 +122,22 @@ func (ls *S3LogStreamer) ReadS3(client *s3.Client) ([]byte, error) {
 func (ls *S3LogStreamer) initConfig() *s3.Client {
 	credentialsOpt := config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(ls.conf.S3_ACCESS_KEY_ID, ls.conf.S3_SECRET_ACCESS_KEY, ""))
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(ls.conf.S3_REGION), credentialsOpt)
-
+	var cfg aws.Config
+	var err error
 	if len(ls.conf.S3_ENDPOINT) > 0 {
 		customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			if service == dynamodb.ServiceID && region == ls.conf.S3_REGION {
+			if region == ls.conf.S3_REGION {
 				return aws.Endpoint{
-					//PartitionID:   "aws",
 					URL:           ls.conf.S3_ENDPOINT,
 					SigningRegion: ls.conf.S3_REGION,
+					HostnameImmutable: true,
 				}, nil
 			}
-			// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 		})
-		cfg, err = config.LoadDefaultConfig(context.TODO(), config.WithEndpointResolverWithOptions(customResolver), credentialsOpt)
+		cfg, err = config.LoadDefaultConfig(context.TODO(), config.WithRegion(ls.conf.S3_REGION), credentialsOpt, config.WithEndpointResolverWithOptions(customResolver))
+	} else {
+		cfg, err = config.LoadDefaultConfig(context.TODO(), config.WithRegion(ls.conf.S3_REGION), credentialsOpt)
 	}
 
 	if err != nil {
