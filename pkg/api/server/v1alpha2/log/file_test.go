@@ -34,10 +34,7 @@ func TestFileLogStreamer(t *testing.T) {
 			},
 		},
 	}
-	streamer, err := NewFileLogStreamer(trl, 1024, dir)
-	if err != nil {
-		t.Fatalf("failed to create file log streamer: %v", err)
-	}
+	streamer := NewFileLogStreamer(trl, 1024, dir)
 	// Verify that the taskRunLog has the right path
 	if trl.Status.File == nil {
 		t.Error("expected TaskRunLog record to have a file path in its status.")

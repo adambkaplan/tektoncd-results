@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/tektoncd/results/pkg/apis/v1alpha2"
+	"github.com/tektoncd/results/pkg/conf"
 )
 
 const (
@@ -31,10 +32,12 @@ type LogStreamer interface {
 //
 // NewLogStreamer may mutate the TaskRunLog object's status, to provide implementation information
 // for reading and writing files.
-func NewLogStreamer(trl *v1alpha2.TaskRunLog, bufSize int, logDataDir string) (LogStreamer, error) {
+func NewLogStreamer(trl *v1alpha2.TaskRunLog, bufSize int, logDataDir string, conf *conf.ConfigFile) (LogStreamer, error) {
 	switch trl.Spec.Type {
 	case v1alpha2.FileLogType:
-		return NewFileLogStreamer(trl, bufSize, logDataDir)
+		return NewFileLogStreamer(trl, bufSize, logDataDir), nil
+	case v1alpha2.S3LogType:
+		return NewS3LogStreamer(trl, bufSize, conf, logDataDir), nil
 	}
 	return nil, fmt.Errorf("log streamer type %s is not supported", trl.Spec.Type)
 }

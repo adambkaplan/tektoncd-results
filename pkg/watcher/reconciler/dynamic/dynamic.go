@@ -220,7 +220,8 @@ func needsLogsStreamed(rec *pb.Record) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	needsStream := trl.Spec.Type == v1alpha2.FileLogType
+	needsStream := trl.Spec.Type == v1alpha2.FileLogType ||
+	trl.Spec.Type == v1alpha2.S3LogType
 	if trl.Status.File != nil {
 		needsStream = needsStream && trl.Status.File.Size <= 0
 	}

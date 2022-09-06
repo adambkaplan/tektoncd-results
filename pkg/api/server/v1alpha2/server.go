@@ -26,6 +26,7 @@ import (
 	model "github.com/tektoncd/results/pkg/api/server/db"
 	"github.com/tektoncd/results/pkg/api/server/v1alpha2/auth"
 	"github.com/tektoncd/results/pkg/api/server/v1alpha2/log"
+	"github.com/tektoncd/results/pkg/conf"
 	pb "github.com/tektoncd/results/proto/v1alpha2/results_go_proto"
 	"gorm.io/gorm"
 )
@@ -47,6 +48,7 @@ type Server struct {
 	auth         auth.Checker
 	logChunkSize int
 	logDataDir   string
+	Conf         *conf.ConfigFile
 
 	// Converts result names -> IDs configurable to allow overrides for
 	// testing.
@@ -98,6 +100,12 @@ func WithLogChunkSize(size int) Option {
 func WithLogDataDir(dir string) Option {
 	return func(s *Server) {
 		s.logDataDir = dir
+	}
+}
+
+func WithConf(conf *conf.ConfigFile) Option {
+	return func(s *Server) {
+		s.Conf = conf
 	}
 }
 

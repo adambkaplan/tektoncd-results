@@ -34,8 +34,10 @@ import (
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 	v1alpha2 "github.com/tektoncd/results/pkg/api/server/v1alpha2"
 	"github.com/tektoncd/results/pkg/api/server/v1alpha2/auth"
+	"github.com/tektoncd/results/pkg/conf"
 	v1alpha2pb "github.com/tektoncd/results/proto/v1alpha2/results_go_proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -49,21 +51,43 @@ import (
 )
 
 func main() {
+
+	// Config file path in the linux container
+	viper.AddConfigPath("/etc/env")
+	// Config file path for local development purpose.
+	viper.AddConfigPath("./env")
+	viper.SetConfigName("config")
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalf("Failed to read env configuration: %v", err)
+	}
+
+	configFile := conf.ConfigFile{}
+	err = viper.Unmarshal(&configFile)
+
+	if err != nil {
+		log.Fatal("cannot load config:", err)
+	}
+
 	flag.Parse()
 
-	user, pass := os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")
+	user, pass := configFile.DB_USER, configFile.DB_PASSWORD
 	if user == "" || pass == "" {
 		log.Fatal("Must provide both DB_USER and DB_PASSWORD")
 	}
 	// Connect to the database.
 	// DSN derived from https://pkg.go.dev/gorm.io/driver/postgres
 
-	sslmode := os.Getenv("DB_SSLMODE")
+	sslmode := configFile.DB_SSLMODE
 	if sslmode == "" {
 		sslmode = "disable"
 	}
 
-	dbURI := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s", os.Getenv("DB_ADDR"), user, pass, os.Getenv("DB_NAME"), os.Getenv("DB_SSLMODE"))
+	dbURI := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s", configFile.DB_ADDR, user, pass, configFile.DB_NAME, configFile.DB_SSLMODE)
 	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to open the results.db: %v", err)
@@ -90,7 +114,9 @@ func main() {
 	// Register API server(s)
 	v1a2, err := v1alpha2.New(db,
 		v1alpha2.WithAuth(auth.NewRBAC(k8s)),
-		v1alpha2.WithLogDataDir(logsData))
+		v1alpha2.WithLogDataDir(logsData),
+		v1alpha2.WithConf(&configFile),
+	)
 	if err != nil {
 		log.Fatalf("failed to create server: %v", err)
 	}
