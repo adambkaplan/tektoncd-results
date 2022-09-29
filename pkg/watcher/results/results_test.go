@@ -274,8 +274,11 @@ func TestUpsertRecord(t *testing.T) {
 				TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 					TaskRunResults: []v1beta1.TaskRunResult{
 						{
-							Name:  "result1",
-							Value: "value1",
+							Name: "result1",
+							Value: v1beta1.ParamValue{
+								Type:      v1beta1.ParamTypeString,
+								StringVal: "value1",
+							},
 						},
 					},
 				},
@@ -296,8 +299,11 @@ func TestUpsertRecord(t *testing.T) {
 				PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 					PipelineResults: []v1beta1.PipelineRunResult{
 						{
-							Name:  "result1",
-							Value: "value1",
+							Name: "result1",
+							Value: v1beta1.ParamValue{
+								Type:      v1beta1.ParamTypeString,
+								StringVal: "value1",
+							},
 						},
 					},
 				},
@@ -374,8 +380,11 @@ func TestUpsertRecord(t *testing.T) {
 							TaskRunStatusFields: v1beta1.TaskRunStatusFields{
 								TaskRunResults: []v1beta1.TaskRunResult{
 									{
-										Name:  "result1",
-										Value: "value1-updated",
+										Name: "result1",
+										Value: v1beta1.ParamValue{
+											Type:      v1beta1.ParamTypeString,
+											StringVal: "value1",
+										},
 									},
 								},
 							},
@@ -397,8 +406,11 @@ func TestUpsertRecord(t *testing.T) {
 							PipelineRunStatusFields: v1beta1.PipelineRunStatusFields{
 								PipelineResults: []v1beta1.PipelineRunResult{
 									{
-										Name:  "result1",
-										Value: "value1-updated",
+										Name: "result1",
+										Value: v1beta1.ParamValue{
+											Type:      v1beta1.ParamTypeString,
+											StringVal: "value1",
+										},
 									},
 								},
 							},

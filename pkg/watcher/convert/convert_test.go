@@ -19,12 +19,12 @@ package convert
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tektoncd/results/pkg/apis/v1alpha2"
 	"testing"
 	"time"
 
+	"github.com/tektoncd/results/pkg/apis/v1alpha2"
+
 	"github.com/google/go-cmp/cmp"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/pod"
 	rpb "github.com/tektoncd/results/proto/v1alpha2/results_go_proto"
@@ -229,7 +229,10 @@ var (
 				Results: []v1beta1.PipelineResult{{
 					Name:        "result",
 					Description: "desc",
-					Value:       "value",
+					Value: v1beta1.ParamValue{
+						Type:      v1beta1.ParamTypeString,
+						StringVal: "value",
+					},
 				}},
 				Finally: []v1beta1.PipelineTask{{}},
 			},
@@ -379,10 +382,6 @@ func TestTypeName(t *testing.T) {
 			want: "tekton.dev/v1beta1.PipelineRun",
 		},
 		{
-			i:    &v1alpha1.TaskRun{},
-			want: "tekton.dev/v1alpha1.TaskRun",
-		},
-		{
 			// This shouldn't really happen, but serves as an example of what
 			// happens if clients manually override the TypeMeta in the object.
 			i: &v1beta1.TaskRun{
@@ -415,10 +414,6 @@ func TestInferGVK(t *testing.T) {
 		{
 			o:    &v1beta1.PipelineRun{},
 			want: schema.FromAPIVersionAndKind("tekton.dev/v1beta1", "PipelineRun"),
-		},
-		{
-			o:    &v1alpha1.PipelineRun{},
-			want: schema.FromAPIVersionAndKind("tekton.dev/v1alpha1", "PipelineRun"),
 		},
 		// We only load in the Tekton type scheme, so other Objects won't be recognized.
 		{
