@@ -19,9 +19,10 @@ package convert
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tektoncd/results/pkg/apis/v1alpha2"
 	"testing"
 	"time"
+
+	"github.com/tektoncd/results/pkg/apis/v1alpha2"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
