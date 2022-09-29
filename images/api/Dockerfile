@@ -1,5 +1,5 @@
 # Docker configuration to build Tekton Results watcher image
-FROM registry.access.redhat.com/ubi9/go-toolset:1.17 as builder
+FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS builder
 
 COPY go.mod go.mod
 COPY go.sum go.sum
