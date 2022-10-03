@@ -229,7 +229,7 @@ var (
 				Results: []v1beta1.PipelineResult{{
 					Name:        "result",
 					Description: "desc",
-					Value:       *v1beta1.NewArrayOrString("value"),
+					Value:       *v1beta1.NewStructuredValues("value"),
 				}},
 				Finally: []v1beta1.PipelineTask{{}},
 			},
