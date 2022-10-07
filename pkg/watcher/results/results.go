@@ -282,6 +282,19 @@ func (c *Client) createLogRecord(ctx context.Context, parent string, o Object, o
 	})
 }
 
+func (c *Client) IsLogRecordExists(ctx context.Context, o Object) (bool, error) {
+	parentResult, err := c.ensureResult(ctx, o)
+	if err != nil {
+		return false, err
+	}
+	name := logName(parentResult.GetName(), o)
+	record, err := c.GetRecord(ctx, &pb.GetRecordRequest{Name: name})
+	if err != nil && status.Code(err) == codes.NotFound {
+		return false, nil
+	}
+	return record != nil, err
+}
+
 // defaultName is the default Result/Record name that should be used if one is
 // not already associated to the Object.
 func defaultName(o metav1.Object) string {

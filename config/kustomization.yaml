@@ -20,6 +20,7 @@ resources:
 - api.yaml
 - default-clusterroles.yaml
 - watcher.yaml
+- config.yaml
 - config-info.yaml
 - config-leader-election.yaml
 - config-logging.yaml
